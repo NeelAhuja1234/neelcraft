@@ -213,96 +213,88 @@ panel_install() {
     echo -e "${LIGHT_GREEN}        PTERODACTYL PANEL INSTALLATION${RESET}"
     echo
 
-    # Root check
+    # ========================================================
+    # ROOT CHECK
+    # ========================================================
+
     if [ "$(id -u)" -ne 0 ]; then
-        echo -e "${RED}✗ Root access required.${RESET}"
+        echo -e "${RED}✗ Please run this script as root.${RESET}"
         pause_screen
         return
     fi
 
-    # OS detection
+    # ========================================================
+    # OS CHECK
+    # ========================================================
+
     if [ ! -f /etc/os-release ]; then
-        echo -e "${RED}✗ Unable to detect operating system.${RESET}"
+        echo -e "${RED}✗ Cannot detect operating system.${RESET}"
         pause_screen
         return
     fi
 
     . /etc/os-release
 
-    echo -e "${GREEN}OS:${RESET} ${PRETTY_NAME}"
-    echo -e "${GREEN}Architecture:${RESET} $(uname -m)"
-    echo -e "${GREEN}CPU:${RESET} $(nproc)"
-    echo -e "${GREEN}RAM:${RESET} $(free -h | awk '/Mem:/ {print $2}')"
+    echo -e "${GREEN}Detected OS:${RESET} $PRETTY_NAME"
     echo
 
     case "$ID" in
 
         ubuntu)
-            if [[ "$VERSION_ID" == "22.04" || "$VERSION_ID" == "24.04" ]]; then
-                echo -e "${GREEN}✓ Ubuntu version supported.${RESET}"
-            else
-                echo -e "${RED}✗ Unsupported Ubuntu version: $VERSION_ID${RESET}"
+
+            if [[ "$VERSION_ID" != "22.04" && "$VERSION_ID" != "24.04" ]]; then
+                echo -e "${RED}✗ Supported Ubuntu versions: 22.04 / 24.04${RESET}"
                 pause_screen
                 return
             fi
+
             ;;
 
         debian)
-            if [[ "$VERSION_ID" == "11" ||
-                  "$VERSION_ID" == "12" ||
-                  "$VERSION_ID" == "13" ]]; then
-                echo -e "${GREEN}✓ Debian version supported.${RESET}"
-            else
-                echo -e "${RED}✗ Unsupported Debian version: $VERSION_ID${RESET}"
+
+            if [[ "$VERSION_ID" != "11" &&
+                  "$VERSION_ID" != "12" &&
+                  "$VERSION_ID" != "13" ]]; then
+
+                echo -e "${RED}✗ Supported Debian versions: 11 / 12 / 13${RESET}"
                 pause_screen
                 return
             fi
+
             ;;
 
         *)
-            echo -e "${RED}✗ This installer currently supports Ubuntu/Debian only.${RESET}"
+
+            echo -e "${RED}✗ This installer supports Ubuntu/Debian only.${RESET}"
             pause_screen
             return
             ;;
+
     esac
 
+    echo -e "${GREEN}✓ Operating system supported.${RESET}"
     echo
 
-    # Existing installation check
-    if [ -d "/var/www/pterodactyl" ]; then
-        echo -e "${YELLOW}⚠ Pterodactyl directory already exists.${RESET}"
-        echo
-        echo "Location:"
-        echo "/var/www/pterodactyl"
-        echo
-        echo -e "${RED}Installation cancelled to prevent overwriting an existing Panel.${RESET}"
-        pause_screen
-        return
-    fi
+    # ========================================================
+    # WARNING
+    # ========================================================
 
-    # Existing services check
-    echo "Checking existing services..."
+    echo -e "${YELLOW}WARNING${RESET}"
+    echo
+    echo "This installer is intended for a fresh VPS."
+    echo "It will install/configure:"
+    echo
+    echo "  PHP 8.3"
+    echo "  MariaDB"
+    echo "  Redis"
+    echo "  Nginx"
+    echo "  Composer 2"
+    echo "  Pterodactyl Panel"
+    echo
+    echo "Existing web-server/database configurations may be changed."
     echo
 
-    if systemctl is-active --quiet nginx; then
-        echo -e "${YELLOW}⚠ Nginx is already running.${RESET}"
-    fi
-
-    if systemctl is-active --quiet apache2; then
-        echo -e "${YELLOW}⚠ Apache is already running.${RESET}"
-    fi
-
-    if systemctl is-active --quiet mariadb; then
-        echo -e "${YELLOW}⚠ MariaDB is already running.${RESET}"
-    fi
-
-    echo
-
-    echo -e "${YELLOW}IMPORTANT:${RESET}"
-    echo "This installer will modify system packages and web-server/database configuration."
-    echo
-
-    read -rp "Continue with Pterodactyl installation? [y/N]: " confirm
+    read -rp "Continue? [y/N]: " confirm
 
     if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
         echo
@@ -311,24 +303,540 @@ panel_install() {
         return
     fi
 
+    # ========================================================
+    # USER INPUT
+    # ========================================================
+
     echo
-    echo -e "${GREEN}✓ Compatibility checks passed.${RESET}"
+    echo -e "${LIGHT_GREEN}             PANEL CONFIGURATION${RESET}"
     echo
-    echo "The actual Pterodactyl deployment module should now be called."
+
+    read -rp "Panel domain (example.com): " PANEL_DOMAIN
+
+    if [ -z "$PANEL_DOMAIN" ]; then
+        echo -e "${RED}✗ Domain cannot be empty.${RESET}"
+        pause_screen
+        return
+    fi
+
+    read -rp "Admin email: " ADMIN_EMAIL
+
+    if [ -z "$ADMIN_EMAIL" ]; then
+        echo -e "${RED}✗ Email cannot be empty.${RESET}"
+        pause_screen
+        return
+    fi
+
     echo
-    echo "Required components include:"
-    echo "  • PHP 8.2/8.3"
-    echo "  • PHP extensions"
-    echo "  • MariaDB/MySQL"
-    echo "  • Redis"
-    echo "  • Nginx"
-    echo "  • Composer 2"
-    echo "  • Pterodactyl Panel files"
-    echo "  • Database configuration"
-    echo "  • Queue worker"
-    echo "  • Cron"
+    echo -e "${YELLOW}Create a database password.${RESET}"
+    read -rsp "Database password: " DB_PASSWORD
     echo
-    echo -e "${YELLOW}Deployment module not yet attached.${RESET}"
+
+    if [ -z "$DB_PASSWORD" ]; then
+        echo -e "${RED}✗ Database password cannot be empty.${RESET}"
+        pause_screen
+        return
+    fi
+
+    echo
+
+    # ========================================================
+    # ADMIN DETAILS
+    # ========================================================
+
+    read -rp "Admin username: " ADMIN_USERNAME
+    read -rp "Admin first name: " ADMIN_FIRST
+    read -rp "Admin last name: " ADMIN_LAST
+
+    echo
+    read -rsp "Admin password: " ADMIN_PASSWORD
+    echo
+    echo
+
+    if [ -z "$ADMIN_USERNAME" ] ||
+       [ -z "$ADMIN_FIRST" ] ||
+       [ -z "$ADMIN_LAST" ] ||
+       [ -z "$ADMIN_PASSWORD" ]; then
+
+        echo -e "${RED}✗ Admin information cannot be empty.${RESET}"
+        pause_screen
+        return
+    fi
+
+    # ========================================================
+    # SUMMARY
+    # ========================================================
+
+    banner
+
+    echo -e "${LIGHT_GREEN}             INSTALLATION SUMMARY${RESET}"
+    echo
+
+    echo -e "${GREEN}Domain:${RESET} $PANEL_DOMAIN"
+    echo -e "${GREEN}Email:${RESET} $ADMIN_EMAIL"
+    echo -e "${GREEN}Username:${RESET} $ADMIN_USERNAME"
+    echo -e "${GREEN}OS:${RESET} $PRETTY_NAME"
+
+    echo
+    echo -e "${YELLOW}Make sure your domain points to this VPS IP.${RESET}"
+    echo
+
+    read -rp "Start installation? [y/N]: " start_install
+
+    if [[ ! "$start_install" =~ ^[Yy]$ ]]; then
+        echo
+        echo "Installation cancelled."
+        pause_screen
+        return
+    fi
+
+    # ========================================================
+    # SYSTEM UPDATE
+    # ========================================================
+
+    banner
+
+    echo -e "${LIGHT_GREEN}[1/10] Updating system...${RESET}"
+    echo
+
+    export DEBIAN_FRONTEND=noninteractive
+
+    apt-get update
+    apt-get upgrade -y
+
+    # ========================================================
+    # BASIC DEPENDENCIES
+    # ========================================================
+
+    echo
+    echo -e "${LIGHT_GREEN}[2/10] Installing dependencies...${RESET}"
+    echo
+
+    apt-get install -y \
+        curl \
+        wget \
+        ca-certificates \
+        gnupg \
+        git \
+        unzip \
+        tar \
+        nginx \
+        mariadb-server \
+        redis-server \
+        certbot \
+        python3-certbot-nginx \
+        software-properties-common
+
+    # ========================================================
+    # PHP REPOSITORY
+    # ========================================================
+
+    echo
+    echo -e "${LIGHT_GREEN}[3/10] Preparing PHP...${RESET}"
+    echo
+
+    if [ "$ID" = "ubuntu" ]; then
+
+        apt-get install -y \
+            lsb-release \
+            apt-transport-https
+
+        if [ "$VERSION_ID" = "22.04" ]; then
+            add-apt-repository -y ppa:ondrej/php
+            apt-get update
+        fi
+
+    fi
+
+    # ========================================================
+    # PHP 8.3
+    # ========================================================
+
+    echo
+    echo -e "${LIGHT_GREEN}[4/10] Installing PHP 8.3...${RESET}"
+    echo
+
+    apt-get install -y \
+        php8.3 \
+        php8.3-cli \
+        php8.3-common \
+        php8.3-gd \
+        php8.3-mysql \
+        php8.3-mbstring \
+        php8.3-bcmath \
+        php8.3-xml \
+        php8.3-curl \
+        php8.3-zip \
+        php8.3-fpm
+
+    systemctl enable --now php8.3-fpm
+    systemctl enable --now nginx
+    systemctl enable --now mariadb
+    systemctl enable --now redis-server
+
+    # ========================================================
+    # COMPOSER
+    # ========================================================
+
+    echo
+    echo -e "${LIGHT_GREEN}[5/10] Installing Composer...${RESET}"
+    echo
+
+    if ! command -v composer >/dev/null 2>&1; then
+
+        curl -sS https://getcomposer.org/installer \
+            | php -- \
+            --install-dir=/usr/local/bin \
+            --filename=composer
+
+        chmod +x /usr/local/bin/composer
+
+    fi
+
+    composer --version
+
+    # ========================================================
+    # DATABASE
+    # ========================================================
+
+    echo
+    echo -e "${LIGHT_GREEN}[6/10] Configuring MariaDB...${RESET}"
+    echo
+
+    mysql <<MYSQL
+CREATE DATABASE IF NOT EXISTS panel
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+
+CREATE USER IF NOT EXISTS 'pterodactyl'@'127.0.0.1'
+IDENTIFIED BY '${DB_PASSWORD}';
+
+ALTER USER 'pterodactyl'@'127.0.0.1'
+IDENTIFIED BY '${DB_PASSWORD}';
+
+GRANT ALL PRIVILEGES ON panel.*
+TO 'pterodactyl'@'127.0.0.1';
+
+FLUSH PRIVILEGES;
+MYSQL
+
+    echo -e "${GREEN}✓ Database configured.${RESET}"
+
+    # ========================================================
+    # DOWNLOAD PANEL
+    # ========================================================
+
+    echo
+    echo -e "${LIGHT_GREEN}[7/10] Downloading Pterodactyl Panel...${RESET}"
+    echo
+
+    mkdir -p /var/www/pterodactyl
+
+    cd /var/www/pterodactyl || return
+
+    curl -Lo panel.tar.gz \
+        https://github.com/pterodactyl/panel/releases/latest/download/panel.tar.gz
+
+    tar -xzvf panel.tar.gz
+
+    rm -f panel.tar.gz
+
+    chmod -R 755 storage bootstrap/cache
+
+    # ========================================================
+    # COMPOSER INSTALL
+    # ========================================================
+
+    echo
+    echo -e "${LIGHT_GREEN}[8/10] Installing Panel dependencies...${RESET}"
+    echo
+
+    COMPOSER_ALLOW_SUPERUSER=1 \
+        composer install \
+        --no-dev \
+        --optimize-autoloader
+
+    cp .env.example .env
+
+    php artisan key:generate --force
+
+    # ========================================================
+    # DATABASE ENVIRONMENT
+    # ========================================================
+
+    echo
+    echo -e "${LIGHT_GREEN}Configuring Panel environment...${RESET}"
+    echo
+
+    php artisan p:environment:setup \
+        --author="$ADMIN_EMAIL" \
+        --url="https://$PANEL_DOMAIN" \
+        --timezone="UTC" \
+        --cache="redis" \
+        --session="redis" \
+        --queue="redis"
+
+    php artisan p:environment:database \
+        --host="127.0.0.1" \
+        --port="3306" \
+        --database="panel" \
+        --username="pterodactyl" \
+        --password="$DB_PASSWORD"
+
+    # ========================================================
+    # MIGRATION
+    # ========================================================
+
+    echo
+    echo -e "${LIGHT_GREEN}[9/10] Creating Panel database tables...${RESET}"
+    echo
+
+    php artisan migrate \
+        --seed \
+        --force
+
+    # ========================================================
+    # ADMIN USER
+    # ========================================================
+
+    echo
+    echo -e "${LIGHT_GREEN}[10/10] Creating administrator...${RESET}"
+    echo
+
+    php artisan p:user:make \
+        --email="$ADMIN_EMAIL" \
+        --username="$ADMIN_USERNAME" \
+        --name-first="$ADMIN_FIRST" \
+        --name-last="$ADMIN_LAST" \
+        --password="$ADMIN_PASSWORD" \
+        --admin=1
+
+    # ========================================================
+    # PERMISSIONS
+    # ========================================================
+
+    echo
+    echo -e "${LIGHT_GREEN}Setting Panel permissions...${RESET}"
+    echo
+
+    chown -R www-data:www-data /var/www/pterodactyl
+
+    chmod -R 755 storage bootstrap/cache
+
+    # ========================================================
+    # NGINX CONFIG
+    # ========================================================
+
+    echo
+    echo -e "${LIGHT_GREEN}Configuring Nginx...${RESET}"
+    echo
+
+    cat > /etc/nginx/sites-available/pterodactyl.conf <<NGINX
+server {
+
+    listen 80;
+    server_name ${PANEL_DOMAIN};
+
+    root /var/www/pterodactyl/public;
+
+    index index.html index.htm index.php;
+
+    charset utf-8;
+
+    client_max_body_size 100m;
+    client_body_timeout 120s;
+
+    location / {
+        try_files \$uri \$uri/ /index.php?\$query_string;
+    }
+
+    location = /favicon.ico {
+        access_log off;
+        log_not_found off;
+    }
+
+    location = /robots.txt {
+        access_log off;
+        log_not_found off;
+    }
+
+    location ~ \.php$ {
+
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+
+        fastcgi_index index.php;
+
+        include fastcgi_params;
+
+        fastcgi_param PHP_VALUE "upload_max_filesize = 100M
+post_max_size = 100M";
+
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+
+        fastcgi_param HTTP_PROXY "";
+
+        fastcgi_intercept_errors off;
+
+        fastcgi_buffer_size 16k;
+        fastcgi_buffers 4 16k;
+
+        fastcgi_connect_timeout 300;
+        fastcgi_send_timeout 300;
+        fastcgi_read_timeout 300;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+}
+NGINX
+
+    rm -f /etc/nginx/sites-enabled/default
+
+    ln -sf \
+        /etc/nginx/sites-available/pterodactyl.conf \
+        /etc/nginx/sites-enabled/pterodactyl.conf
+
+    nginx -t
+
+    if [ $? -ne 0 ]; then
+        echo
+        echo -e "${RED}✗ Nginx configuration test failed.${RESET}"
+        echo "Installation stopped."
+        pause_screen
+        return
+    fi
+
+    systemctl restart nginx
+
+    # ========================================================
+    # QUEUE WORKER
+    # ========================================================
+
+    echo
+    echo -e "${LIGHT_GREEN}Creating Pterodactyl queue worker...${RESET}"
+    echo
+
+    cat > /etc/systemd/system/pteroq.service <<'SERVICE'
+[Unit]
+Description=Pterodactyl Queue Worker
+After=redis-server.service
+
+[Service]
+User=www-data
+Group=www-data
+
+Restart=always
+
+ExecStart=/usr/bin/php /var/www/pterodactyl/artisan queue:work --queue=high,standard,low --sleep=3 --tries=3
+
+StartLimitInterval=180
+StartLimitBurst=30
+
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+
+    systemctl daemon-reload
+
+    systemctl enable --now pteroq.service
+
+    # ========================================================
+    # CRON
+    # ========================================================
+
+    echo
+    echo -e "${LIGHT_GREEN}Configuring cron...${RESET}"
+    echo
+
+    CRON_LINE="* * * * * php /var/www/pterodactyl/artisan schedule:run >> /dev/null 2>&1"
+
+    (crontab -u www-data -l 2>/dev/null | grep -Fv \
+        "/var/www/pterodactyl/artisan schedule:run"; echo "$CRON_LINE") \
+        | crontab -u www-data -
+
+    # ========================================================
+    # SSL
+    # ========================================================
+
+    echo
+    echo -e "${LIGHT_GREEN}SSL CONFIGURATION${RESET}"
+    echo
+
+    echo "Your domain must already point to this VPS."
+    echo
+
+    read -rp "Install Let's Encrypt SSL now? [y/N]: " SSL_CONFIRM
+
+    if [[ "$SSL_CONFIRM" =~ ^[Yy]$ ]]; then
+
+        certbot --nginx \
+            -d "$PANEL_DOMAIN" \
+            --non-interactive \
+            --agree-tos \
+            -m "$ADMIN_EMAIL" \
+            --redirect
+
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}✓ SSL installed successfully.${RESET}"
+        else
+            echo -e "${YELLOW}⚠ SSL installation failed. You can configure it later.${RESET}"
+        fi
+
+    else
+
+        echo -e "${YELLOW}SSL skipped.${RESET}"
+
+    fi
+
+    # ========================================================
+    # FINAL CHECK
+    # ========================================================
+
+    echo
+    echo -e "${LIGHT_GREEN}Checking services...${RESET}"
+    echo
+
+    systemctl is-active --quiet nginx \
+        && echo -e "${GREEN}✓ Nginx: Running${RESET}" \
+        || echo -e "${RED}✗ Nginx: Not running${RESET}"
+
+    systemctl is-active --quiet mariadb \
+        && echo -e "${GREEN}✓ MariaDB: Running${RESET}" \
+        || echo -e "${RED}✗ MariaDB: Not running${RESET}"
+
+    systemctl is-active --quiet redis-server \
+        && echo -e "${GREEN}✓ Redis: Running${RESET}" \
+        || echo -e "${RED}✗ Redis: Not running${RESET}"
+
+    systemctl is-active --quiet pteroq \
+        && echo -e "${GREEN}✓ Pterodactyl Queue: Running${RESET}" \
+        || echo -e "${RED}✗ Pterodactyl Queue: Not running${RESET}"
+
+    # ========================================================
+    # DONE
+    # ========================================================
+
+    echo
+    line
+    echo
+    echo -e "${LIGHT_GREEN}       PTERODACTYL INSTALLATION COMPLETE${RESET}"
+    echo
+    echo -e "${GREEN}Panel URL:${RESET} https://${PANEL_DOMAIN}"
+    echo -e "${GREEN}Panel Directory:${RESET} /var/www/pterodactyl"
+    echo
+    echo -e "${YELLOW}IMPORTANT:${RESET}"
+    echo "Back up the APP_KEY from:"
+    echo
+    echo "/var/www/pterodactyl/.env"
+    echo
+    echo "Keep it somewhere safe."
+    echo
+    line
 
     pause_screen
 }
