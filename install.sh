@@ -213,26 +213,122 @@ panel_install() {
     echo -e "${LIGHT_GREEN}        PTERODACTYL PANEL INSTALLATION${RESET}"
     echo
 
-    echo -e "${YELLOW}Pterodactyl installer module is not connected yet.${RESET}"
+    # Root check
+    if [ "$(id -u)" -ne 0 ]; then
+        echo -e "${RED}✗ Root access required.${RESET}"
+        pause_screen
+        return
+    fi
+
+    # OS detection
+    if [ ! -f /etc/os-release ]; then
+        echo -e "${RED}✗ Unable to detect operating system.${RESET}"
+        pause_screen
+        return
+    fi
+
+    . /etc/os-release
+
+    echo -e "${GREEN}OS:${RESET} ${PRETTY_NAME}"
+    echo -e "${GREEN}Architecture:${RESET} $(uname -m)"
+    echo -e "${GREEN}CPU:${RESET} $(nproc)"
+    echo -e "${GREEN}RAM:${RESET} $(free -h | awk '/Mem:/ {print $2}')"
     echo
 
-    echo "The final installer will perform:"
+    case "$ID" in
+
+        ubuntu)
+            if [[ "$VERSION_ID" == "22.04" || "$VERSION_ID" == "24.04" ]]; then
+                echo -e "${GREEN}✓ Ubuntu version supported.${RESET}"
+            else
+                echo -e "${RED}✗ Unsupported Ubuntu version: $VERSION_ID${RESET}"
+                pause_screen
+                return
+            fi
+            ;;
+
+        debian)
+            if [[ "$VERSION_ID" == "11" ||
+                  "$VERSION_ID" == "12" ||
+                  "$VERSION_ID" == "13" ]]; then
+                echo -e "${GREEN}✓ Debian version supported.${RESET}"
+            else
+                echo -e "${RED}✗ Unsupported Debian version: $VERSION_ID${RESET}"
+                pause_screen
+                return
+            fi
+            ;;
+
+        *)
+            echo -e "${RED}✗ This installer currently supports Ubuntu/Debian only.${RESET}"
+            pause_screen
+            return
+            ;;
+    esac
+
     echo
-    echo "  • OS compatibility check"
-    echo "  • Root access check"
-    echo "  • PHP installation"
-    echo "  • MariaDB/MySQL installation"
-    echo "  • Redis installation"
-    echo "  • Nginx configuration"
-    echo "  • Composer setup"
-    echo "  • Pterodactyl download"
+
+    # Existing installation check
+    if [ -d "/var/www/pterodactyl" ]; then
+        echo -e "${YELLOW}⚠ Pterodactyl directory already exists.${RESET}"
+        echo
+        echo "Location:"
+        echo "/var/www/pterodactyl"
+        echo
+        echo -e "${RED}Installation cancelled to prevent overwriting an existing Panel.${RESET}"
+        pause_screen
+        return
+    fi
+
+    # Existing services check
+    echo "Checking existing services..."
+    echo
+
+    if systemctl is-active --quiet nginx; then
+        echo -e "${YELLOW}⚠ Nginx is already running.${RESET}"
+    fi
+
+    if systemctl is-active --quiet apache2; then
+        echo -e "${YELLOW}⚠ Apache is already running.${RESET}"
+    fi
+
+    if systemctl is-active --quiet mariadb; then
+        echo -e "${YELLOW}⚠ MariaDB is already running.${RESET}"
+    fi
+
+    echo
+
+    echo -e "${YELLOW}IMPORTANT:${RESET}"
+    echo "This installer will modify system packages and web-server/database configuration."
+    echo
+
+    read -rp "Continue with Pterodactyl installation? [y/N]: " confirm
+
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+        echo
+        echo "Installation cancelled."
+        pause_screen
+        return
+    fi
+
+    echo
+    echo -e "${GREEN}✓ Compatibility checks passed.${RESET}"
+    echo
+    echo "The actual Pterodactyl deployment module should now be called."
+    echo
+    echo "Required components include:"
+    echo "  • PHP 8.2/8.3"
+    echo "  • PHP extensions"
+    echo "  • MariaDB/MySQL"
+    echo "  • Redis"
+    echo "  • Nginx"
+    echo "  • Composer 2"
+    echo "  • Pterodactyl Panel files"
     echo "  • Database configuration"
-    echo "  • Queue configuration"
-    echo "  • Cron configuration"
-    echo "  • SSL configuration"
+    echo "  • Queue worker"
+    echo "  • Cron"
     echo
-
-    echo -e "${GREEN}✓ Panel installation option selected.${RESET}"
+    echo -e "${YELLOW}Deployment module not yet attached.${RESET}"
 
     pause_screen
 }
