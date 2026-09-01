@@ -2,18 +2,11 @@
 
 # ============================================================
 #                    NEELCRAFT
-#              VPS MANAGEMENT TOOL
+#              ALL-IN-ONE VPS TOOL
 #                  Made By - Neel
 # ============================================================
 
 set -u
-set -o pipefail
-
-# ============================================================
-# SETTINGS
-# ============================================================
-
-GITHUB_RAW="https://raw.githubusercontent.com/NeelAhuja1234/neelcraft/main"
 
 # ============================================================
 # COLORS
@@ -46,63 +39,16 @@ pause_screen() {
 }
 
 require_root() {
-
     if [ "$(id -u)" -ne 0 ]; then
-
         echo
         echo -e "${RED}✗ Root access is required.${RESET}"
         echo
-        echo "Run with root access."
+        echo "Run this script using:"
         echo
-
+        echo "sudo bash install.sh"
+        echo
         exit 1
     fi
-}
-
-# ============================================================
-# RUN GITHUB MODULE
-# ============================================================
-
-run_module() {
-
-    local module="$1"
-    local temp_file="/tmp/neelcraft-${module}"
-
-    echo
-    echo -e "${CYAN}Downloading ${module}...${RESET}"
-    echo
-
-    if ! command -v curl >/dev/null 2>&1; then
-
-        echo -e "${YELLOW}curl not found. Installing...${RESET}"
-
-        apt-get update
-        apt-get install -y curl
-
-    fi
-
-    if ! curl -fsSL \
-        "${GITHUB_RAW}/modules/${module}" \
-        -o "$temp_file"; then
-
-        echo
-        echo -e "${RED}✗ Failed to download ${module}.${RESET}"
-        echo
-
-        echo "Check:"
-        echo "• Internet connection"
-        echo "• GitHub repository"
-        echo "• File path"
-
-        pause_screen
-        return
-    fi
-
-    chmod +x "$temp_file"
-
-    bash "$temp_file"
-
-    rm -f "$temp_file"
 }
 
 # ============================================================
@@ -117,403 +63,283 @@ banner() {
 
     cat <<'EOF'
 
-███╗   ██╗███████╗███████╗██╗         ██████╗██████╗  █████╗  ███████╗████████╗
+███╗   ██╗███████╗███████╗██╗         ██████╗██████╗  █████╗ ███████╗████████╗
 ████╗  ██║██╔════╝██╔════╝██║        ██╔════╝██╔══██╗██╔══██╗██╔════╝╚══██╔══╝
-██╔██╗ ██║█████╗  █████╗  ██║        ██║       ██████╔╝███████║█████╗     ██║
-██║╚██╗██║██╔══╝  ██╔══╝  ██║        ██║      ██╔══██╗ ██╔══██║██╔══╝     ██║
-██║ ╚████║███████╗███████╗███████╗  ╚██████╗██║  ██║ ██║  ██║██║         ██║
+██╔██╗ ██║█████╗  █████╗  ██║        ██║     ██████╔╝███████╗█████╗     ██║
+██║╚██╗██║██╔══╝  ██╔══╝  ██║        ██║     ██╔══██╗██╔══██║██╔══╝     ██║
+██║ ╚████║███████╗███████╗███████╗    ╚██████╗██║  ██║██║  ██║██║        ██║
 ╚═╝  ╚═══╝╚══════╝╚══════╝╚══════╝     ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝        ╚═╝
 
 EOF
 
     echo -e "${RESET}"
-
     echo -e "${LIGHT_GREEN}                 Made By - Neel${RESET}"
-
     echo
     line
 }
 
 # ============================================================
-# PANEL MENU
+# INSTALL DOCKER
 # ============================================================
 
-panel_menu() {
-
-    while true; do
-
-        banner
-
-        echo -e "${LIGHT_GREEN}                    PANEL${RESET}"
-        echo
-
-        echo -e "${GREEN}1)${RESET} Pterodactyl Panel"
-        echo -e "${GREEN}2)${RESET} Air-Link Panel"
-        echo -e "${GREEN}3)${RESET} Back to Main Menu"
-
-        echo
-        line
-
-        read -rp "Select → " choice
-
-        case "$choice" in
-
-            1)
-                pterodactyl_menu
-                ;;
-
-            2)
-                airlink_menu
-                ;;
-
-            3)
-                return
-                ;;
-
-            *)
-                echo -e "${RED}✗ Invalid option.${RESET}"
-                sleep 1
-                ;;
-
-        esac
-
-    done
-}
-
-# ============================================================
-# PTERODACTYL MENU
-# ============================================================
-
-pterodactyl_menu() {
-
-    while true; do
-
-        banner
-
-        echo -e "${LIGHT_GREEN}             PTERODACTYL MANAGER${RESET}"
-        echo
-
-        echo -e "${GREEN}1)${RESET} Panel Installation"
-        echo -e "${GREEN}2)${RESET} Wings Information"
-        echo -e "${GREEN}3)${RESET} System Information"
-        echo -e "${GREEN}4)${RESET} Database Setup"
-        echo -e "${GREEN}5)${RESET} Back"
-
-        echo
-        line
-
-        read -rp "Select → " option
-
-        case "$option" in
-
-            1)
-                panel_install
-                ;;
-
-            2)
-                wings_install
-                ;;
-
-            3)
-                system_information
-                ;;
-
-            4)
-                database_menu
-                ;;
-
-            5)
-                return
-                ;;
-
-            *)
-                echo -e "${RED}✗ Invalid option.${RESET}"
-                sleep 1
-                ;;
-        esac
-
-    done
-}
-
-# ============================================================
-# PTERODACTYL PANEL INSTALLER
-# ============================================================
-
-panel_install() {
+install_docker() {
 
     banner
 
-    echo -e "${LIGHT_GREEN}        NEELCRAFT PTERODACTYL INSTALLER${RESET}"
+    echo -e "${LIGHT_GREEN}              INSTALLING DOCKER${RESET}"
     echo
 
-    if [ ! -f /etc/os-release ]; then
+    if command -v docker >/dev/null 2>&1; then
 
-        echo -e "${RED}Unable to detect OS.${RESET}"
-        pause_screen
-        return
+        echo -e "${GREEN}✓ Docker is already installed.${RESET}"
+        docker --version
 
-    fi
-
-    . /etc/os-release
-
-    case "${ID:-}" in
-
-        ubuntu|debian)
-            ;;
-        *)
-            echo -e "${RED}Ubuntu or Debian required.${RESET}"
-            pause_screen
-            return
-            ;;
-    esac
-
-    echo -e "${LIGHT_GREEN}PANEL DETAILS${RESET}"
-    echo
-
-    read -rp "Panel Domain       : " PANEL_DOMAIN
-    read -rp "Admin Email        : " ADMIN_EMAIL
-    read -rp "Admin Username     : " ADMIN_USERNAME
-    read -rp "Admin First Name   : " ADMIN_FIRST
-
-    echo -n "Admin Password     : "
-    read -rs ADMIN_PASSWORD
-
-    echo
-    echo
-
-    if [ -z "$PANEL_DOMAIN" ] ||
-       [ -z "$ADMIN_EMAIL" ] ||
-       [ -z "$ADMIN_USERNAME" ] ||
-       [ -z "$ADMIN_FIRST" ] ||
-       [ -z "$ADMIN_PASSWORD" ]; then
-
-        echo -e "${RED}All fields are required.${RESET}"
         pause_screen
         return
     fi
-
-    echo
-    echo -e "${YELLOW}The panel installer will now start.${RESET}"
-    echo
-    echo "Domain: $PANEL_DOMAIN"
-    echo "Email : $ADMIN_EMAIL"
-    echo "User  : $ADMIN_USERNAME"
-
-    echo
-
-    read -rp "Continue? [Y/n]: " confirm
-
-    if [[ "$confirm" =~ ^[Nn]$ ]]; then
-        return
-    fi
-
-    export DEBIAN_FRONTEND=noninteractive
-
-    PANEL_DIR="/var/www/pterodactyl"
-
-    DB_NAME="panel"
-    DB_USER="pterodactyl"
-    DB_PASSWORD="$(openssl rand -hex 24)"
-
-    echo
-    echo -e "${LIGHT_GREEN}[1/7] Installing dependencies...${RESET}"
 
     apt-get update
 
     apt-get install -y \
-        curl \
-        wget \
         ca-certificates \
-        gnupg \
-        git \
-        unzip \
-        tar \
-        nginx \
-        mariadb-server \
-        redis-server \
-        openssl \
-        cron
+        curl \
+        gnupg
 
-    echo
-    echo -e "${LIGHT_GREEN}[2/7] Installing PHP dependencies...${RESET}"
+    install -m 0755 -d /etc/apt/keyrings
+
+    curl -fsSL https://download.docker.com/linux/debian/gpg \
+        -o /etc/apt/keyrings/docker.asc
+
+    chmod a+r /etc/apt/keyrings/docker.asc
+
+    echo \
+        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
+        $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+        > /etc/apt/sources.list.d/docker.list
+
+    apt-get update
 
     apt-get install -y \
-        php \
-        php-cli \
-        php-common \
-        php-gd \
-        php-mysql \
-        php-mbstring \
-        php-bcmath \
-        php-xml \
-        php-curl \
-        php-zip \
-        php-fpm
+        docker-ce \
+        docker-ce-cli \
+        containerd.io \
+        docker-buildx-plugin \
+        docker-compose-plugin
+
+    systemctl enable docker
+    systemctl start docker
 
     echo
-    echo -e "${LIGHT_GREEN}[3/7] Installing Composer...${RESET}"
+    echo -e "${GREEN}✓ Docker installed successfully.${RESET}"
 
-    if ! command -v composer >/dev/null 2>&1; then
-
-        curl -sS https://getcomposer.org/installer \
-            | php -- \
-            --install-dir=/usr/local/bin \
-            --filename=composer
-
-    fi
-
-    echo
-    echo -e "${LIGHT_GREEN}[4/7] Creating database...${RESET}"
-
-    systemctl enable --now mariadb
-    systemctl enable --now redis-server
-
-    mysql <<MYSQL
-CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_unicode_ci;
-
-CREATE USER IF NOT EXISTS '${DB_USER}'@'127.0.0.1'
-IDENTIFIED BY '${DB_PASSWORD}';
-
-GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.*
-TO '${DB_USER}'@'127.0.0.1';
-
-FLUSH PRIVILEGES;
-MYSQL
-
-    echo
-    echo -e "${LIGHT_GREEN}[5/7] Downloading Panel...${RESET}"
-
-    mkdir -p "$PANEL_DIR"
-
-    cd "$PANEL_DIR" || return
-
-    curl -fL \
-        https://github.com/pterodactyl/panel/releases/latest/download/panel.tar.gz \
-        -o panel.tar.gz
-
-    if [ ! -s panel.tar.gz ]; then
-
-        echo -e "${RED}Panel download failed.${RESET}"
-        pause_screen
-        return
-
-    fi
-
-    tar -xzf panel.tar.gz
-
-    rm -f panel.tar.gz
-
-    echo
-    echo -e "${LIGHT_GREEN}[6/7] Installing Composer packages...${RESET}"
-
-    COMPOSER_ALLOW_SUPERUSER=1 \
-    composer install \
-        --no-dev \
-        --optimize-autoloader
-
-    cp -n .env.example .env
-
-    php artisan key:generate --force
-
-    echo
-    echo -e "${LIGHT_GREEN}[7/7] Configuring database...${RESET}"
-
-    php artisan p:environment:setup \
-        --author="$ADMIN_EMAIL" \
-        --url="http://${PANEL_DOMAIN}" \
-        --timezone="UTC" \
-        --cache="redis" \
-        --session="redis" \
-        --queue="redis"
-
-    php artisan p:environment:database \
-        --host="127.0.0.1" \
-        --port="3306" \
-        --database="$DB_NAME" \
-        --username="$DB_USER" \
-        --password="$DB_PASSWORD"
-
-    php artisan migrate --seed --force
-
-    php artisan p:user:make \
-        --email="$ADMIN_EMAIL" \
-        --username="$ADMIN_USERNAME" \
-        --name-first="$ADMIN_FIRST" \
-        --name-last="Admin" \
-        --password="$ADMIN_PASSWORD" \
-        --admin=1
-
-    chown -R www-data:www-data "$PANEL_DIR"
-
-    echo
-    echo -e "${GREEN}Panel installation completed.${RESET}"
-    echo
-    echo "Panel directory:"
-    echo "$PANEL_DIR"
-
-    echo
-    echo -e "${YELLOW}Nginx and SSL configuration should be completed after DNS points to the server.${RESET}"
+    docker --version
 
     pause_screen
 }
 
 # ============================================================
-# WINGS
+# INSTALL GIT
 # ============================================================
 
-wings_install() {
+install_git() {
 
     banner
 
-    echo -e "${LIGHT_GREEN}PTERODACTYL WINGS${RESET}"
+    echo -e "${LIGHT_GREEN}                INSTALLING GIT${RESET}"
     echo
 
-    echo "Wings installation can be added as a separate module."
+    apt-get update
+    apt-get install -y git
+
     echo
-    echo "Requirements:"
-    echo "• Docker"
-    echo "• Correct Wings configuration"
-    echo "• Server allocation"
+    echo -e "${GREEN}✓ Git installed successfully.${RESET}"
+
+    git --version
 
     pause_screen
 }
 
 # ============================================================
-# AIR-LINK
+# INSTALL JAVA
 # ============================================================
 
-airlink_menu() {
+install_java() {
 
     banner
 
-    echo -e "${LIGHT_GREEN}AIR-LINK PANEL${RESET}"
+    echo -e "${LIGHT_GREEN}               INSTALLING JAVA${RESET}"
     echo
 
-    echo -e "${YELLOW}This module is not configured yet.${RESET}"
+    echo "1) Java 17"
+    echo "2) Java 21"
+
+    echo
+
+    read -rp "Select → " choice
+
+    case "$choice" in
+
+        1)
+            apt-get update
+            apt-get install -y openjdk-17-jdk
+            ;;
+
+        2)
+            apt-get update
+            apt-get install -y openjdk-21-jdk
+            ;;
+
+        *)
+            echo -e "${RED}✗ Invalid option.${RESET}"
+            pause_screen
+            return
+            ;;
+
+    esac
+
+    echo
+    echo -e "${GREEN}✓ Java installed.${RESET}"
+
+    java -version
 
     pause_screen
 }
 
 # ============================================================
-# VPS MAKER
+# INSTALL NODE.JS
 # ============================================================
 
-vps_maker() {
+install_nodejs() {
+
+    banner
+
+    echo -e "${LIGHT_GREEN}             INSTALLING NODE.JS${RESET}"
+    echo
+
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+
+    apt-get install -y nodejs
+
+    echo
+    echo -e "${GREEN}✓ Node.js installed.${RESET}"
+
+    node -v
+    npm -v
+
+    pause_screen
+}
+
+# ============================================================
+# INSTALL PYTHON
+# ============================================================
+
+install_python() {
+
+    banner
+
+    echo -e "${LIGHT_GREEN}             INSTALLING PYTHON${RESET}"
+    echo
+
+    apt-get update
+
+    apt-get install -y \
+        python3 \
+        python3-pip \
+        python3-venv
+
+    echo
+    echo -e "${GREEN}✓ Python installed.${RESET}"
+
+    python3 --version
+
+    pause_screen
+}
+
+# ============================================================
+# INSTALL NGINX
+# ============================================================
+
+install_nginx() {
+
+    banner
+
+    echo -e "${LIGHT_GREEN}              INSTALLING NGINX${RESET}"
+    echo
+
+    apt-get update
+    apt-get install -y nginx
+
+    systemctl enable nginx
+    systemctl start nginx
+
+    echo
+    echo -e "${GREEN}✓ Nginx installed successfully.${RESET}"
+
+    pause_screen
+}
+
+# ============================================================
+# INSTALL MARIADB
+# ============================================================
+
+install_mariadb() {
+
+    banner
+
+    echo -e "${LIGHT_GREEN}             INSTALLING MARIADB${RESET}"
+    echo
+
+    apt-get update
+    apt-get install -y mariadb-server
+
+    systemctl enable mariadb
+    systemctl start mariadb
+
+    echo
+    echo -e "${GREEN}✓ MariaDB installed successfully.${RESET}"
+
+    pause_screen
+}
+
+# ============================================================
+# INSTALL REDIS
+# ============================================================
+
+install_redis() {
+
+    banner
+
+    echo -e "${LIGHT_GREEN}               INSTALLING REDIS${RESET}"
+    echo
+
+    apt-get update
+    apt-get install -y redis-server
+
+    systemctl enable redis-server
+    systemctl start redis-server
+
+    echo
+    echo -e "${GREEN}✓ Redis installed successfully.${RESET}"
+
+    pause_screen
+}
+
+# ============================================================
+# DATABASE MENU
+# ============================================================
+
+database_menu() {
 
     while true; do
 
         banner
 
-        echo -e "${LIGHT_GREEN}                  VPS MAKER${RESET}"
+        echo -e "${LIGHT_GREEN}              DATABASE SETUP${RESET}"
         echo
 
-        echo -e "${GREEN}1)${RESET} Create KVM VPS"
-        echo -e "${GREEN}2)${RESET} Create No-KVM VPS"
-        echo -e "${GREEN}3)${RESET} Install VPS Dependencies"
-        echo -e "${GREEN}4)${RESET} VPS Management Tools"
-        echo -e "${GREEN}5)${RESET} Back"
+        echo -e "${GREEN}1)${RESET} Install MariaDB"
+        echo -e "${GREEN}2)${RESET} Install Redis"
+        echo -e "${GREEN}3)${RESET} Back"
 
         echo
         line
@@ -523,30 +349,22 @@ vps_maker() {
         case "$choice" in
 
             1)
-                run_module "kvm.sh"
+                install_mariadb
                 ;;
 
             2)
-                run_module "nokvm.sh"
+                install_redis
                 ;;
 
             3)
-                run_module "setup.sh"
-                ;;
-
-            4)
-                run_module "tools.sh"
-                ;;
-
-            5)
                 return
                 ;;
 
             *)
-                echo
                 echo -e "${RED}✗ Invalid option.${RESET}"
                 sleep 1
                 ;;
+
         esac
 
     done
@@ -562,7 +380,7 @@ tools_menu() {
 
         banner
 
-        echo -e "${LIGHT_GREEN}TOOLS${RESET}"
+        echo -e "${LIGHT_GREEN}                    TOOLS${RESET}"
         echo
 
         echo -e "${GREEN}1)${RESET} Install Docker"
@@ -570,7 +388,10 @@ tools_menu() {
         echo -e "${GREEN}3)${RESET} Install Java"
         echo -e "${GREEN}4)${RESET} Install Node.js"
         echo -e "${GREEN}5)${RESET} Install Python"
-        echo -e "${GREEN}6)${RESET} Back"
+        echo -e "${GREEN}6)${RESET} Install Nginx"
+        echo -e "${GREEN}7)${RESET} Database Setup"
+        echo -e "${GREEN}8)${RESET} System Information"
+        echo -e "${GREEN}9)${RESET} Back"
 
         echo
         line
@@ -592,7 +413,7 @@ tools_menu() {
                 ;;
 
             4)
-                install_node
+                install_nodejs
                 ;;
 
             5)
@@ -600,87 +421,352 @@ tools_menu() {
                 ;;
 
             6)
+                install_nginx
+                ;;
+
+            7)
+                database_menu
+                ;;
+
+            8)
+                system_information
+                ;;
+
+            9)
                 return
                 ;;
 
             *)
-                echo -e "${RED}Invalid option.${RESET}"
+                echo -e "${RED}✗ Invalid option.${RESET}"
                 sleep 1
                 ;;
+
         esac
 
     done
 }
 
-install_docker() {
+# ============================================================
+# CLOUDFLARED INSTALL
+# ============================================================
+
+install_cloudflared() {
+
+    banner
+
+    echo -e "${LIGHT_GREEN}          INSTALLING CLOUDFLARED${RESET}"
+    echo
+
+    if command -v cloudflared >/dev/null 2>&1; then
+
+        echo -e "${GREEN}✓ Cloudflared is already installed.${RESET}"
+        echo
+
+        cloudflared --version
+
+        pause_screen
+        return
+
+    fi
 
     apt-get update
 
-    apt-get install -y docker.io
+    apt-get install -y \
+        curl \
+        wget \
+        gnupg
 
-    systemctl enable --now docker
+    mkdir -p --mode=0755 /usr/share/keyrings
 
-    echo -e "${GREEN}Docker installed.${RESET}"
+    curl -fsSL \
+        https://pkg.cloudflare.com/cloudflare-main.gpg \
+        -o /usr/share/keyrings/cloudflare-main.gpg
 
-    pause_screen
-}
+    if [ $? -ne 0 ]; then
 
-install_git() {
+        echo
+        echo -e "${RED}✗ Failed to download Cloudflare key.${RESET}"
 
-    apt-get update
-    apt-get install -y git
+        pause_screen
+        return
 
-    echo -e "${GREEN}Git installed.${RESET}"
+    fi
 
-    pause_screen
-}
-
-install_java() {
-
-    apt-get update
-    apt-get install -y default-jdk
-
-    java -version
-
-    pause_screen
-}
-
-install_node() {
+    echo \
+        "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared any main" \
+        > /etc/apt/sources.list.d/cloudflared.list
 
     apt-get update
-    apt-get install -y nodejs npm
 
-    node -v
+    apt-get install -y cloudflared
 
-    pause_screen
-}
+    echo
 
-install_python() {
+    if command -v cloudflared >/dev/null 2>&1; then
 
-    apt-get update
-    apt-get install -y python3 python3-pip
+        echo -e "${GREEN}✓ Cloudflared installed successfully.${RESET}"
+        echo
 
-    python3 --version
+        cloudflared --version
+
+    else
+
+        echo -e "${RED}✗ Cloudflared installation failed.${RESET}"
+
+    fi
 
     pause_screen
 }
 
 # ============================================================
-# DATABASE MENU
+# CLOUDFLARE TUNNEL SETUP
 # ============================================================
 
-database_menu() {
+setup_cloudflare_tunnel() {
+
+    banner
+
+    echo -e "${LIGHT_GREEN}           CLOUDFLARE TUNNEL SETUP${RESET}"
+    echo
+
+    if ! command -v cloudflared >/dev/null 2>&1; then
+
+        echo -e "${YELLOW}Cloudflared is not installed.${RESET}"
+        echo
+
+        install_cloudflared
+
+    fi
+
+    if ! command -v cloudflared >/dev/null 2>&1; then
+
+        echo -e "${RED}✗ Cloudflared installation is required.${RESET}"
+
+        pause_screen
+        return
+
+    fi
+
+    banner
+
+    echo -e "${LIGHT_GREEN}           CLOUDFLARE TUNNEL SETUP${RESET}"
+    echo
+
+    echo -e "${CYAN}Steps:${RESET}"
+    echo
+
+    echo "1. Open Cloudflare Dashboard"
+    echo "2. Go to Networking"
+    echo "3. Go to Tunnels"
+    echo "4. Create a Tunnel"
+    echo "5. Select Cloudflared"
+    echo "6. Copy the Tunnel Token"
+
+    echo
+    line
+    echo
+
+    read -rp "Paste Tunnel Token: " TUNNEL_TOKEN
+
+    if [ -z "$TUNNEL_TOKEN" ]; then
+
+        echo
+        echo -e "${RED}✗ Tunnel token cannot be empty.${RESET}"
+
+        pause_screen
+        return
+
+    fi
+
+    echo
+    echo -e "${YELLOW}Installing tunnel service...${RESET}"
+    echo
+
+    systemctl stop cloudflared 2>/dev/null || true
+    systemctl disable cloudflared 2>/dev/null || true
+
+    cloudflared service uninstall 2>/dev/null || true
+
+    cloudflared service install "$TUNNEL_TOKEN"
+
+    if [ $? -ne 0 ]; then
+
+        echo
+        echo -e "${RED}✗ Tunnel installation failed.${RESET}"
+
+        pause_screen
+        return
+
+    fi
+
+    systemctl daemon-reload
+
+    systemctl enable cloudflared
+
+    systemctl restart cloudflared
+
+    sleep 3
+
+    echo
+
+    if systemctl is-active --quiet cloudflared; then
+
+        echo -e "${GREEN}✓ CLOUDFLARE TUNNEL IS RUNNING!${RESET}"
+
+    else
+
+        echo -e "${RED}✗ Tunnel failed to start.${RESET}"
+        echo
+
+        journalctl -u cloudflared \
+            --no-pager \
+            -n 20
+
+    fi
+
+    pause_screen
+}
+
+# ============================================================
+# CLOUDFLARE STATUS
+# ============================================================
+
+cloudflare_status() {
+
+    banner
+
+    echo -e "${LIGHT_GREEN}           CLOUDFLARE TUNNEL STATUS${RESET}"
+    echo
+
+    if ! command -v cloudflared >/dev/null 2>&1; then
+
+        echo -e "${RED}✗ Cloudflared is not installed.${RESET}"
+
+        pause_screen
+        return
+
+    fi
+
+    cloudflared --version
+
+    echo
+    line
+    echo
+
+    systemctl status cloudflared \
+        --no-pager
+
+    pause_screen
+}
+
+# ============================================================
+# RESTART CLOUDFLARE
+# ============================================================
+
+restart_cloudflare() {
+
+    banner
+
+    echo -e "${LIGHT_GREEN}          RESTARTING CLOUDFLARE${RESET}"
+    echo
+
+    systemctl restart cloudflared
+
+    sleep 2
+
+    if systemctl is-active --quiet cloudflared; then
+
+        echo -e "${GREEN}✓ Tunnel restarted successfully.${RESET}"
+
+    else
+
+        echo -e "${RED}✗ Tunnel restart failed.${RESET}"
+
+    fi
+
+    pause_screen
+}
+
+# ============================================================
+# STOP CLOUDFLARE
+# ============================================================
+
+stop_cloudflare() {
+
+    banner
+
+    echo -e "${RED}            STOP CLOUDFLARE TUNNEL${RESET}"
+    echo
+
+    read -rp "Are you sure? [Y/n]: " CONFIRM
+
+    if [[ "$CONFIRM" =~ ^[Nn]$ ]]; then
+
+        return
+
+    fi
+
+    systemctl stop cloudflared
+
+    echo
+    echo -e "${GREEN}✓ Tunnel stopped.${RESET}"
+
+    pause_screen
+}
+
+# ============================================================
+# REMOVE CLOUDFLARE
+# ============================================================
+
+remove_cloudflare_tunnel() {
+
+    banner
+
+    echo -e "${RED}          REMOVE CLOUDFLARE TUNNEL${RESET}"
+    echo
+
+    read -rp "Are you sure? [Y/n]: " CONFIRM
+
+    if [[ "$CONFIRM" =~ ^[Nn]$ ]]; then
+
+        return
+
+    fi
+
+    systemctl stop cloudflared 2>/dev/null || true
+
+    systemctl disable cloudflared 2>/dev/null || true
+
+    cloudflared service uninstall 2>/dev/null || true
+
+    systemctl daemon-reload
+
+    echo
+    echo -e "${GREEN}✓ Tunnel service removed.${RESET}"
+
+    pause_screen
+}
+
+# ============================================================
+# CLOUDFLARE MENU
+# ============================================================
+
+cloudflare_menu() {
 
     while true; do
 
         banner
 
-        echo -e "${LIGHT_GREEN}DATABASE SETUP${RESET}"
+        echo -e "${LIGHT_GREEN}             CLOUDFLARE TUNNEL${RESET}"
         echo
 
-        echo -e "${GREEN}1)${RESET} Install MariaDB"
-        echo -e "${GREEN}2)${RESET} Install Redis"
-        echo -e "${GREEN}3)${RESET} Back"
+        echo -e "${GREEN}1)${RESET} Install Cloudflared"
+        echo -e "${GREEN}2)${RESET} Setup Tunnel"
+        echo -e "${GREEN}3)${RESET} Check Tunnel Status"
+        echo -e "${GREEN}4)${RESET} Restart Tunnel"
+        echo -e "${GREEN}5)${RESET} Stop Tunnel"
+        echo -e "${GREEN}6)${RESET} Remove Tunnel"
+        echo -e "${GREEN}7)${RESET} Back"
 
         echo
         line
@@ -690,27 +776,38 @@ database_menu() {
         case "$choice" in
 
             1)
-                apt-get update
-                apt-get install -y mariadb-server
-                systemctl enable --now mariadb
-                pause_screen
+                install_cloudflared
                 ;;
 
             2)
-                apt-get update
-                apt-get install -y redis-server
-                systemctl enable --now redis-server
-                pause_screen
+                setup_cloudflare_tunnel
                 ;;
 
             3)
+                cloudflare_status
+                ;;
+
+            4)
+                restart_cloudflare
+                ;;
+
+            5)
+                stop_cloudflare
+                ;;
+
+            6)
+                remove_cloudflare_tunnel
+                ;;
+
+            7)
                 return
                 ;;
 
             *)
-                echo -e "${RED}Invalid option.${RESET}"
+                echo -e "${RED}✗ Invalid option.${RESET}"
                 sleep 1
                 ;;
+
         esac
 
     done
@@ -724,43 +821,70 @@ system_information() {
 
     banner
 
-    echo -e "${LIGHT_GREEN}SYSTEM INFORMATION${RESET}"
+    echo -e "${LIGHT_GREEN}             SYSTEM INFORMATION${RESET}"
     echo
 
-    echo "Hostname:"
+    echo -e "${CYAN}Hostname:${RESET}"
     hostname
 
     echo
-    echo "Operating System:"
 
-    if [ -f /etc/os-release ]; then
-        . /etc/os-release
-        echo "$PRETTY_NAME"
-    fi
+    echo -e "${CYAN}Operating System:${RESET}"
+    cat /etc/os-release | grep PRETTY_NAME
 
     echo
-    echo "Kernel:"
+
+    echo -e "${CYAN}Kernel:${RESET}"
     uname -r
 
     echo
-    echo "CPU Cores:"
+
+    echo -e "${CYAN}CPU:${RESET}"
     nproc
 
     echo
-    echo "Memory:"
+
+    echo -e "${CYAN}Memory:${RESET}"
     free -h
 
     echo
-    echo "Disk:"
+
+    echo -e "${CYAN}Disk:${RESET}"
     df -h /
 
     echo
-    echo "KVM:"
+
+    pause_screen
+}
+
+# ============================================================
+# VPS MAKER
+# ============================================================
+
+vps_maker() {
+
+    banner
+
+    echo -e "${LIGHT_GREEN}                  VPS MAKER${RESET}"
+    echo
+
+    echo -e "${YELLOW}VPS Maker module is currently under development.${RESET}"
+    echo
+
+    echo "This VPS must support nested virtualization"
+    echo "and have /dev/kvm available."
+
+    echo
+    echo
 
     if [ -e /dev/kvm ]; then
-        echo -e "${GREEN}AVAILABLE${RESET}"
+
+        echo -e "${GREEN}✓ KVM is available.${RESET}"
+
     else
-        echo -e "${RED}NOT AVAILABLE${RESET}"
+
+        echo -e "${RED}✗ KVM is not available on this VPS.${RESET}"
+
     fi
 
     pause_screen
@@ -776,11 +900,11 @@ system_edit() {
 
         banner
 
-        echo -e "${LIGHT_GREEN}SYSTEM EDIT${RESET}"
+        echo -e "${LIGHT_GREEN}                 SYSTEM EDIT${RESET}"
         echo
 
         echo -e "${GREEN}1)${RESET} Change Hostname"
-        echo -e "${GREEN}2)${RESET} Show Timezone"
+        echo -e "${GREEN}2)${RESET} View Timezone"
         echo -e "${GREEN}3)${RESET} Back"
 
         echo
@@ -792,13 +916,15 @@ system_edit() {
 
             1)
 
-                read -rp "New hostname: " new_hostname
+                echo
+                read -rp "New hostname: " NEW_HOSTNAME
 
-                if [ -n "$new_hostname" ]; then
+                if [ -n "$NEW_HOSTNAME" ]; then
 
-                    hostnamectl set-hostname "$new_hostname"
+                    hostnamectl set-hostname "$NEW_HOSTNAME"
 
-                    echo -e "${GREEN}Hostname changed.${RESET}"
+                    echo
+                    echo -e "${GREEN}✓ Hostname changed.${RESET}"
 
                 fi
 
@@ -807,7 +933,7 @@ system_edit() {
 
             2)
 
-                timedatectl
+                timedatectl status
 
                 pause_screen
                 ;;
@@ -819,9 +945,63 @@ system_edit() {
 
             *)
 
-                echo -e "${RED}Invalid option.${RESET}"
+                echo -e "${RED}✗ Invalid option.${RESET}"
+
                 sleep 1
                 ;;
+
+        esac
+
+    done
+}
+
+# ============================================================
+# PANEL MENU
+# ============================================================
+
+panel_menu() {
+
+    while true; do
+
+        banner
+
+        echo -e "${LIGHT_GREEN}                    PANEL${RESET}"
+        echo
+
+        echo -e "${GREEN}1)${RESET} Pterodactyl Panel"
+        echo -e "${GREEN}2)${RESET} Back"
+
+        echo
+        line
+
+        read -rp "Select → " choice
+
+        case "$choice" in
+
+            1)
+
+                echo
+                echo -e "${YELLOW}Pterodactyl installer module.${RESET}"
+                echo
+
+                echo "Your existing Pterodactyl installer"
+                echo "can be connected here."
+
+                pause_screen
+                ;;
+
+            2)
+
+                return
+                ;;
+
+            *)
+
+                echo -e "${RED}✗ Invalid option.${RESET}"
+
+                sleep 1
+                ;;
+
         esac
 
     done
@@ -837,14 +1017,16 @@ main_menu() {
 
         banner
 
-        echo -e "${LIGHT_GREEN}MAIN MENU${RESET}"
+        echo -e "${LIGHT_GREEN}                  MAIN MENU${RESET}"
         echo
 
         echo -e "${GREEN}A)${RESET} Panel"
         echo -e "${GREEN}B)${RESET} VPS Maker"
         echo -e "${GREEN}C)${RESET} Tools"
-        echo -e "${GREEN}D)${RESET} System Edit"
-        echo -e "${GREEN}E)${RESET} Exit"
+        echo -e "${GREEN}D)${RESET} Cloudflare Tunnel"
+        echo -e "${GREEN}E)${RESET} System Edit"
+        echo -e "${GREEN}F)${RESET} System Information"
+        echo -e "${GREEN}G)${RESET} Exit"
 
         echo
         line
@@ -866,15 +1048,23 @@ main_menu() {
                 ;;
 
             D|d)
-                system_edit
+                cloudflare_menu
                 ;;
 
             E|e)
+                system_edit
+                ;;
+
+            F|f)
+                system_information
+                ;;
+
+            G|g)
 
                 clear_screen
 
                 echo
-                echo -e "${LIGHT_GREEN}GOODBYE NEELCRAFT!${RESET}"
+                echo -e "${LIGHT_GREEN}Thanks for using NEELCRAFT!${RESET}"
                 echo
 
                 exit 0
@@ -882,9 +1072,12 @@ main_menu() {
 
             *)
 
-                echo -e "${RED}Invalid option.${RESET}"
+                echo
+                echo -e "${RED}✗ Invalid option.${RESET}"
+
                 sleep 1
                 ;;
+
         esac
 
     done
@@ -895,4 +1088,5 @@ main_menu() {
 # ============================================================
 
 require_root
+
 main_menu
