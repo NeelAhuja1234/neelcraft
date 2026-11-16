@@ -29,12 +29,14 @@ Ek hi command se VPS par Pterodactyl Panel, Wings, Tailscale, Cloudflare Tunnel,
 
 ## Install (ek command)
 
-```bash <(curl -fsSL https://raw.githubusercontent.com/NeelAhuja1234/neelcraft/main/install.sh)```
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/NeelAhuja1234/neelcraft/refs/heads/main/installer.sh)
+```
 
 Ya root ke roop mein:
 
 ```bash
-sudo bash <(curl -fsSL https://raw.githubusercontent.com/USERNAME/REPO/main/install.sh)
+sudo bash <(curl -fsSL https://raw.githubusercontent.com/NeelAhuja1234/neelcraft/refs/heads/main/installer.sh)
 ```
 
 ## Menu
